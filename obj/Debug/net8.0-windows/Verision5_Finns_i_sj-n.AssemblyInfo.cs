@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Verision5_Finns_i_sj-n")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a53fddecfa35c7ba16640becf28fb8009fed3bd3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c282eb316a86db5716b0a1201a75aaf1b4e3f25")]
 [assembly: System.Reflection.AssemblyProductAttribute("Verision5_Finns_i_sj-n")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Verision5_Finns_i_sj-n")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

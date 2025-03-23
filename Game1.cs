@@ -114,8 +114,12 @@ public class Game1 : Game
             fas=Spelfas.TaKortFrånBot;
         }
         if(fas==Spelfas.TaKortFrånBot){
-            RemoveKort(sl[0],sl[sl[0].posiSpelare]);
-            fas=Spelfas.annat;
+            if(sl[sl[0].posiSpelare].contains(sl[0].hand[sl[0].PosiAvDittKort].Kort)){
+                RemoveKort(sl[0],sl[sl[0].posiSpelare]);
+                fas=Spelfas.DuVäljerKort;
+            }else{
+                fas=Spelfas.annat;
+            }
         }
         if(fas==Spelfas.annat){Console.WriteLine("");}
         

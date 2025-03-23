@@ -32,5 +32,13 @@ namespace Fan_igen
             set{Hand = value;}
             get{return Hand;}
         }
+        public bool contains(string kort){
+            foreach(Kortvisuel k in Hand){
+                if(k.Kort==kort){
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

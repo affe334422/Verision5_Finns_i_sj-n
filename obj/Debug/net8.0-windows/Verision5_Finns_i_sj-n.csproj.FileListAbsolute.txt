@@ -26,3 +26,4 @@ C:\Users\alle07002\OneDrive - Växjö kommun\Skrivbordet\program\Verision5_Finns
 C:\Users\alle07002\OneDrive - Växjö kommun\Skrivbordet\program\Verision5_Finns_i_sj-n\obj\Debug\net8.0-windows\Verision5_Finns_i_sj-n.pdb
 C:\Users\alle07002\OneDrive - Växjö kommun\Skrivbordet\program\Verision5_Finns_i_sj-n\obj\Debug\net8.0-windows\Verision5_Finns_i_sj-n.genruntimeconfig.cache
 C:\Users\alle07002\OneDrive - Växjö kommun\Skrivbordet\program\Verision5_Finns_i_sj-n\obj\Debug\net8.0-windows\ref\Verision5_Finns_i_sj-n.dll
+C:\Users\alle07002\OneDrive - Växjö kommun\Skrivbordet\program\Verision5_Finns_i_sj-n\obj\Debug\net8.0-windows\Verision5_Finns_i_sj-n.sourcelink.json
