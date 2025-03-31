@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Intrinsics.X86;
+using System.Threading;
 using System.Xml;
 using Fan_igen;
 using Finns_i_Monogame;
@@ -41,6 +42,9 @@ public class Game1 : Game
     Rectangle StartKnapp;
     Rectangle[] Svårihetsgrad = {new Rectangle(500,600,200,100),new Rectangle(800,600,200,100),new Rectangle(1100,600,200,100)};
     int Svårihet = 1;
+    bool sant4=false;
+
+    int Vinnare=0;
 
     Spelfas fas=Spelfas.Meny;
     enum Spelfas{
@@ -133,21 +137,30 @@ public class Game1 : Game
                 }
                 if(fas==Spelfas.DuVäljerKort){
                     VilkenSpelare=0;
-                    HarDe4(sl[VilkenSpelare]);
-                    bool KanDuKöra = true;
-                    if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
-                        fas=Spelfas.Robot1;
-                        KanDuKöra=false;
-                    }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
-                        int kort=ran.Next(0,Sjön.Count);
-                        sl[VilkenSpelare].hand.Add(Sjön[kort]);
-                        Sjön.RemoveAt(kort);
-                    }
-                    if(sl[VilkenSpelare].hand.Count>0){
-                        sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
-                    }
-                    if(KanDuKöra&&MovmentAvKort(sl[VilkenSpelare],ref Space)){
-                        fas=Spelfas.DuVäljerSpelare;
+                    if(HarDe4bool(sl[VilkenSpelare])){
+                        if(sant4){
+                            Thread.Sleep(300);
+                            HarDe4(sl[VilkenSpelare]);
+                            sant4=false;
+                        }else{
+                            sant4=true;
+                        } 
+                    }else{
+                        bool KanDuKöra = true;
+                        if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
+                            fas=Spelfas.Robot1;
+                            KanDuKöra=false;
+                        }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
+                            int kort=ran.Next(0,Sjön.Count);
+                            sl[VilkenSpelare].hand.Add(Sjön[kort]);
+                            Sjön.RemoveAt(kort);
+                        }
+                        if(sl[VilkenSpelare].hand.Count>0){
+                            sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
+                        }
+                        if(KanDuKöra&&MovmentAvKort(sl[VilkenSpelare],ref Space)){
+                            fas=Spelfas.DuVäljerSpelare;
+                        }
                     }
                 }
                 if(fas==Spelfas.DuVäljerSpelare&&MovmentAvSpelare(sl[VilkenSpelare],ref Space)){
@@ -294,6 +307,11 @@ public class Game1 : Game
                 }
             }else{
                 fas=Spelfas.Slut;
+                foreach(Spelare ss in sl){
+                    if(sl[Vinnare].poäng<ss.poäng){
+                        Vinnare=ss.vemärdu;
+                    }
+                }
             }
             foreach(List<string> ls in sl[0].vadhardeandraspelat){
                 for(int i=1;i<4;i++){
@@ -367,18 +385,28 @@ public class Game1 : Game
                     }
                 }
                 if(fas==Spelfas.Slut){
-                for(int i=0;i<4;i++){
-                    _spriteBatch.DrawString(font1,sl[i].namn,new Vector2(350+(300*i),400),Color.Black);
-                    _spriteBatch.DrawString(font1,"Poäng "+sl[i].poäng,new Vector2(350+(300*i),450),Color.Black);
+                    _spriteBatch.DrawString(font1,sl[Vinnare].namn+" vann",new Vector2(800,400),Color.Black);
+                    _spriteBatch.DrawString(font1,"Poäng "+sl[Vinnare].poäng,new Vector2(800,450),Color.Black);
+                    int a=0;
+                    for(int i=0;i<4;i++){
+                        if(i!=Vinnare){
+                            _spriteBatch.DrawString(font1,sl[i].namn,new Vector2(600+(200*a),700),Color.Black);
+                            _spriteBatch.DrawString(font1,"Poäng "+sl[i].poäng,new Vector2(610+(200*a),750),Color.Black);
+                            a++;
+                        }
+                    }
                 }
-            }
             }
             else{
                 _spriteBatch.DrawString(font2,"Finns i sjön",new Vector2(725,200),Color.Black);
                 _spriteBatch.Draw(texture,StartKnapp,Color.Gray);
                 _spriteBatch.DrawString(font2,"Start",new Vector2(830,810),Color.Black);
-                foreach(Rectangle r in Svårihetsgrad){
-                    _spriteBatch.Draw(texture,r,Color.Gray);
+                for(int i=0;i<Svårihetsgrad.Length;i++){
+                    if(i==Svårihet){
+                        _spriteBatch.Draw(texture,Svårihetsgrad[i],Color.DarkGray);
+                    }else{
+                        _spriteBatch.Draw(texture,Svårihetsgrad[i],Color.Gray);
+                    }
                 }
                 _spriteBatch.DrawString(font2,"Lätt",new Vector2(510,610),Color.Green);
                 _spriteBatch.DrawString(font2,"Medel",new Vector2(810,610),Color.Orange);
@@ -403,10 +431,24 @@ public class Game1 : Game
         base.Draw(gameTime);
     }
     
+    bool HarDe4bool(Spelare ss){
+        string[] Kort = {"2","3","4","5","6","7","8","9","10","Knäkt","Dam","Kung","Ess"};
+        foreach(string k in Kort){
+            if(ss.FindAllCount(k)==4){
+                foreach(Kortvisuel kort in ss.hand){
+                    if(kort.Kort==k){
+                        kort.FlyttaY=kort.vitrektangle.Y-100;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
     void HarDe4(Spelare ss){
         string[] Kort = {"2","3","4","5","6","7","8","9","10","Knäkt","Dam","Kung","Ess"};
         foreach(string k in Kort){
-            if(ss.FindAll(k)==4){
+            if(ss.FindAllCount(k)==4){
                 ss.poäng++;
                 for(int i=ss.FindPositionOfAll(k).Count-1;i>-1;i--){
                     ss.hand.RemoveAt(ss.FindPositionOfAll(k)[i]);

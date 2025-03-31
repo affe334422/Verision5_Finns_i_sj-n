@@ -50,7 +50,7 @@ namespace Fan_igen
             }
             return a;
         }
-        public int FindAll(string kort){
+        public int FindAllCount(string kort){
             int antal = 0;
             foreach(Kortvisuel k in Hand){
                 if(k.Kort==kort){
