@@ -89,16 +89,6 @@ public class Game1 : Game
         kstate = Keyboard.GetState();
         mstate = Mouse.GetState();
         if(fas==Spelfas.Meny){
-            /*
-                namn över.
-                en start knapp där nere.
-                göra en svårhets grad på botarna.
-                lätt medel svårt. (ändra hur mcket de minns. lätt=inget, medel=3 kort, svårt=så som det är nu.)
-                
-                fyra rektnaglar
-                    rektanglarna för svårhets grad är = olika nummer och ändrar färg om de är igång.
-                    start är en sant eller falsk. om mussen är över eller du klickar.
-            */
             StartKnapp = new Rectangle(800,800,200,100);
             Rectangle Mus = new Rectangle(mstate.X,mstate.Y,1,1);
             for(int i=0;i<Svårihetsgrad.Length;i++){
@@ -334,9 +324,6 @@ public class Game1 : Game
     {
         GraphicsDevice.Clear(Color.SeaGreen);
         _spriteBatch.Begin();
-
-
-
             if(fas!=Spelfas.Meny){
                 foreach(Kortvisuel k in Sjön){ // Ritar sjön.
                     _spriteBatch.Draw(texture,k.rödrektangle,Color.Black);
