@@ -18,6 +18,7 @@ public class Game1 : Game
     private SpriteFont font1;
     private SpriteFont font2;
     private KeyboardState kstate;
+    private MouseState mstate;
     private List<Spelare> sl = new List<Spelare>{new Spelare("DU",0,875,900),new Spelare("Spelare 1",1,110,450),new Spelare("Spelare 2",2,875,50),new Spelare("Spelare 3",3,1600,450)};
     private bool Start = true;
     private List<string> Kortlek = new List<string>{
@@ -37,8 +38,13 @@ public class Game1 : Game
     List<int> VilkaKort = new List<int>();
     bool FörstaAnimation = true;
 
-    Spelfas fas;
+    Rectangle StartKnapp;
+    Rectangle[] Svårihetsgrad = {new Rectangle(500,600,200,100),new Rectangle(800,600,200,100),new Rectangle(1100,600,200,100)};
+    int Svårihet = 1;
+
+    Spelfas fas=Spelfas.Meny;
     enum Spelfas{
+        Meny,
         StartAnimation,
         DuVäljerKort,
         DuVäljerSpelare,
@@ -81,190 +87,238 @@ public class Game1 : Game
     protected override void Update(GameTime gameTime)
     {
         kstate = Keyboard.GetState();
-        if(Start){
-            Start=false;
-            for(int i=0;i<Kortlek.Count;i++){
-                Sjön.Add(new Kortvisuel(ran.Next(500,1251),ran.Next(200,601),Kortlek[i]));
-            }
-            foreach(Kortvisuel k in Sjön){
-                k.ÄndraLängd = 80;
-                k.ÄndraTjock = 50;
-            }
-            foreach(Spelare s in sl){ // lägger till kort i deras händer.
-                for(int i=0;i<7;i++){
-                    int b = ran.Next(0,Sjön.Count);
-                    s.hand.Add(Sjön[b]);
-                    Sjön.RemoveAt(b);
+        mstate = Mouse.GetState();
+        if(fas==Spelfas.Meny){
+            /*
+                namn över.
+                en start knapp där nere.
+                göra en svårhets grad på botarna.
+                lätt medel svårt. (ändra hur mcket de minns. lätt=inget, medel=3 kort, svårt=så som det är nu.)
+                
+                fyra rektnaglar
+                    rektanglarna för svårhets grad är = olika nummer och ändrar färg om de är igång.
+                    start är en sant eller falsk. om mussen är över eller du klickar.
+            */
+            StartKnapp = new Rectangle(800,800,200,100);
+            Rectangle Mus = new Rectangle(mstate.X,mstate.Y,1,1);
+            for(int i=0;i<Svårihetsgrad.Length;i++){
+                if(Mus.Intersects(Svårihetsgrad[i])&&mstate.LeftButton==ButtonState.Pressed||Mus.Intersects(Svårihetsgrad[i])&&kstate.IsKeyDown(Keys.Space)){
+                    Svårihet = i;
                 }
             }
-            fas = Spelfas.StartAnimation;
+            if(Mus.Intersects(StartKnapp)&&mstate.LeftButton==ButtonState.Pressed||Mus.Intersects(StartKnapp)&&kstate.IsKeyDown(Keys.Space)){
+                Space=false;
+                fas=Spelfas.DuVäljerKort;
+            }
         }
-        if(sl[0].hand.Count>0||sl[1].hand.Count>0||sl[2].hand.Count>0||sl[3].hand.Count>0||Sjön.Count>0){
-            if(fas==Spelfas.StartAnimation){
-                int[] VilkaÄrFärdiga = {0,0,0,0};
-                for(int i=0;i<4;i++){
-                    VilkaÄrFärdiga[i]=Animation(sl,i);
+        else{
+            if(Start){
+                Start=false;
+                for(int i=0;i<Kortlek.Count;i++){
+                    Sjön.Add(new Kortvisuel(ran.Next(500,1251),ran.Next(200,601),Kortlek[i]));
                 }
-                if(HarAllaKortPåRättPlats(sl,VilkaÄrFärdiga)){
-                    sl[0].hand=SåDetSerBraUt(sl,0);
-                    fas=Spelfas.DuVäljerKort;
+                foreach(Kortvisuel k in Sjön){
+                    k.ÄndraLängd = 80;
+                    k.ÄndraTjock = 50;
                 }
-            }
-            if(fas==Spelfas.DuVäljerKort){
-                VilkenSpelare=0;
-                HarDe4(sl[VilkenSpelare]);
-                bool KanDuKöra = true;
-                if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
-                    fas=Spelfas.Robot1;
-                    KanDuKöra=false;
-                }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
-                    int kort=ran.Next(0,Sjön.Count);
-                    sl[VilkenSpelare].hand.Add(Sjön[kort]);
-                    Sjön.RemoveAt(kort);
-                }
-                if(sl[VilkenSpelare].hand.Count>0){
-                    sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
-                }
-                if(KanDuKöra&&MovmentAvKort(sl[VilkenSpelare],ref Space)){
-                    fas=Spelfas.DuVäljerSpelare;
-                }
-            }
-            if(fas==Spelfas.DuVäljerSpelare&&MovmentAvSpelare(sl[VilkenSpelare],ref Space)){
-                fas=Spelfas.TaKortFrånBot;
-            }
-            if(fas==Spelfas.TaKortFrånBot){
-                UpdateraMinnen(sl);
-                if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
-                    VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
-                    foreach(List<string> st in sl[VilkenSpelare].vadhardeandraspelat){
-                        st.Remove(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort);
-                    }
-                    fas=Spelfas.taKortFrånSpelareAnimation;
-                }else{
-                    if(Sjön.Count>0){
-                        VilketKortSjön=ran.Next(0,Sjön.Count);
-                        fas=Spelfas.taKortFrånSjönAnimation;
-                    }else{
-                        fas=Spelfas.Robot1;
+                foreach(Spelare s in sl){ // lägger till kort i deras händer.
+                    for(int i=0;i<7;i++){
+                        int b = ran.Next(0,Sjön.Count);
+                        s.hand.Add(Sjön[b]);
+                        Sjön.RemoveAt(b);
                     }
                 }
+                fas = Spelfas.StartAnimation;
             }
-            if(fas==Spelfas.Robot1){
-                VilkenSpelare=1;
-                HarDe4(sl[VilkenSpelare]);
-                bool KanDuKöra = true;
-                if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
-                    fas=Spelfas.Robot2;
-                    KanDuKöra=false;
-                }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
-                    int kort=ran.Next(0,Sjön.Count);
-                    sl[VilkenSpelare].hand.Add(Sjön[kort]);
-                    Sjön.RemoveAt(kort);
-                }
-                if(KanDuKöra){
-                    Robot(VilkenSpelare);
-                    UpdateraMinnen(sl);
-                    if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
-                        VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
-                        fas=Spelfas.taKortFrånSpelareAnimation;
-                    }else{
-                        if(Sjön.Count>0){
-                            VilketKortSjön=ran.Next(0,Sjön.Count);
-                            fas=Spelfas.taKortFrånSjönAnimation;
-                        }else{
-                            fas=Spelfas.DuVäljerKort;
-                        }
+            if(sl[0].hand.Count>0||sl[1].hand.Count>0||sl[2].hand.Count>0||sl[3].hand.Count>0||Sjön.Count>0){
+                if(fas==Spelfas.StartAnimation){
+                    int[] VilkaÄrFärdiga = {0,0,0,0};
+                    for(int i=0;i<4;i++){
+                        VilkaÄrFärdiga[i]=Animation(sl,i);
                     }
-                }
-            }
-            if(fas==Spelfas.Robot2){
-                VilkenSpelare=2;
-                HarDe4(sl[VilkenSpelare]);
-                bool KanDuKöra = true;
-                if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
-                    fas=Spelfas.Robot3;
-                    KanDuKöra=false;
-                }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
-                    int kort=ran.Next(0,Sjön.Count);
-                    sl[VilkenSpelare].hand.Add(Sjön[kort]);
-                    Sjön.RemoveAt(kort);
-                }
-                if(KanDuKöra){
-                    Robot(VilkenSpelare);
-                    UpdateraMinnen(sl);
-                    if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
-                        VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
-                        fas=Spelfas.taKortFrånSpelareAnimation;
-                    }else{
-                        if(Sjön.Count>0){
-                            VilketKortSjön=ran.Next(0,Sjön.Count);
-                            fas=Spelfas.taKortFrånSjönAnimation;
-                        }else{
-                            fas=Spelfas.DuVäljerKort;
-                        }
-                    }
-                }
-            }
-            if(fas==Spelfas.Robot3){
-                VilkenSpelare=3;
-                HarDe4(sl[VilkenSpelare]);
-                bool KanDuKöra = true;
-                if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
-                    fas=Spelfas.DuVäljerKort;
-                    KanDuKöra=false;
-                }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
-                    int kort=ran.Next(0,Sjön.Count);
-                    sl[VilkenSpelare].hand.Add(Sjön[kort]);
-                    Sjön.RemoveAt(kort);
-                }
-                if(KanDuKöra){
-                    Robot(VilkenSpelare);
-                    UpdateraMinnen(sl);
-                    if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
-                        VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
-                        fas=Spelfas.taKortFrånSpelareAnimation;
-                    }else{
-                        if(Sjön.Count>0){
-                            VilketKortSjön=ran.Next(0,Sjön.Count);
-                            fas=Spelfas.taKortFrånSjönAnimation;
-                        }else{
-                            fas=Spelfas.DuVäljerKort;
-                        }
-                    }
-                }
-            }
-            if(fas==Spelfas.taKortFrånSjönAnimation){
-                if(AnimationTarFrånSjön(Sjön,sl[VilkenSpelare],VilketKortSjön)){
-                    sl[VilkenSpelare].hand.Add(Sjön[VilketKortSjön]);
-                    Sjön.RemoveAt(VilketKortSjön);
-                    if(VilkenSpelare==0){
-                        fas=Spelfas.Robot1;
-                    }else if(VilkenSpelare==1){
-                        fas=Spelfas.Robot2;
-                    }else if(VilkenSpelare==2){
-                        fas=Spelfas.Robot3;
-                    }else if(VilkenSpelare==3){
+                    if(HarAllaKortPåRättPlats(sl,VilkaÄrFärdiga)){
+                        sl[0].hand=SåDetSerBraUt(sl,0);
                         fas=Spelfas.DuVäljerKort;
                     }
                 }
-            }
-            if(fas==Spelfas.taKortFrånSpelareAnimation){
-                if(AnimationTarFrånSpelare(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare],VilkaKort)){
-                    VilkaKort.Clear();
-                    RemoveKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
-                    if(VilkenSpelare==0){
-                        fas=Spelfas.DuVäljerKort;
-                    }else if(VilkenSpelare==1){
+                if(fas==Spelfas.DuVäljerKort){
+                    VilkenSpelare=0;
+                    HarDe4(sl[VilkenSpelare]);
+                    bool KanDuKöra = true;
+                    if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
                         fas=Spelfas.Robot1;
-                    }else if(VilkenSpelare==2){
-                        fas=Spelfas.Robot2;
-                    }else if(VilkenSpelare==3){
-                        fas=Spelfas.Robot3;
+                        KanDuKöra=false;
+                    }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
+                        int kort=ran.Next(0,Sjön.Count);
+                        sl[VilkenSpelare].hand.Add(Sjön[kort]);
+                        Sjön.RemoveAt(kort);
+                    }
+                    if(sl[VilkenSpelare].hand.Count>0){
+                        sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
+                    }
+                    if(KanDuKöra&&MovmentAvKort(sl[VilkenSpelare],ref Space)){
+                        fas=Spelfas.DuVäljerSpelare;
                     }
                 }
+                if(fas==Spelfas.DuVäljerSpelare&&MovmentAvSpelare(sl[VilkenSpelare],ref Space)){
+                    fas=Spelfas.TaKortFrånBot;
+                }
+                if(fas==Spelfas.TaKortFrånBot){
+                    UpdateraMinnen(sl);
+                    if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
+                        VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
+                        foreach(List<string> st in sl[VilkenSpelare].vadhardeandraspelat){
+                            st.Remove(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort);
+                        }
+                        fas=Spelfas.taKortFrånSpelareAnimation;
+                    }else{
+                        if(Sjön.Count>0){
+                            VilketKortSjön=ran.Next(0,Sjön.Count);
+                            fas=Spelfas.taKortFrånSjönAnimation;
+                        }else{
+                            fas=Spelfas.Robot1;
+                        }
+                    }
+                }
+                if(fas==Spelfas.Robot1){
+                    VilkenSpelare=1;
+                    HarDe4(sl[VilkenSpelare]);
+                    bool KanDuKöra = true;
+                    if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
+                        fas=Spelfas.Robot2;
+                        KanDuKöra=false;
+                    }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
+                        int kort=ran.Next(0,Sjön.Count);
+                        sl[VilkenSpelare].hand.Add(Sjön[kort]);
+                        Sjön.RemoveAt(kort);
+                    }
+                    if(KanDuKöra){
+                        Robot(VilkenSpelare);
+                        UpdateraMinnen(sl);
+                        if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
+                            VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
+                            fas=Spelfas.taKortFrånSpelareAnimation;
+                        }else{
+                            if(Sjön.Count>0){
+                                VilketKortSjön=ran.Next(0,Sjön.Count);
+                                fas=Spelfas.taKortFrånSjönAnimation;
+                            }else{
+                                fas=Spelfas.DuVäljerKort;
+                            }
+                        }
+                    }
+                }
+                if(fas==Spelfas.Robot2){
+                    VilkenSpelare=2;
+                    HarDe4(sl[VilkenSpelare]);
+                    bool KanDuKöra = true;
+                    if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
+                        fas=Spelfas.Robot3;
+                        KanDuKöra=false;
+                    }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
+                        int kort=ran.Next(0,Sjön.Count);
+                        sl[VilkenSpelare].hand.Add(Sjön[kort]);
+                        Sjön.RemoveAt(kort);
+                    }
+                    if(KanDuKöra){
+                        Robot(VilkenSpelare);
+                        UpdateraMinnen(sl);
+                        if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
+                            VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
+                            fas=Spelfas.taKortFrånSpelareAnimation;
+                        }else{
+                            if(Sjön.Count>0){
+                                VilketKortSjön=ran.Next(0,Sjön.Count);
+                                fas=Spelfas.taKortFrånSjönAnimation;
+                            }else{
+                                fas=Spelfas.DuVäljerKort;
+                            }
+                        }
+                    }
+                }
+                if(fas==Spelfas.Robot3){
+                    VilkenSpelare=3;
+                    HarDe4(sl[VilkenSpelare]);
+                    bool KanDuKöra = true;
+                    if(sl[VilkenSpelare].hand.Count<1&&Sjön.Count<1){ // om både handen och sjön är tom så kan du inte göra något
+                        fas=Spelfas.DuVäljerKort;
+                        KanDuKöra=false;
+                    }else if(sl[VilkenSpelare].hand.Count<1){ // om bara handen är tom så plockar du ett kort och körviare.
+                        int kort=ran.Next(0,Sjön.Count);
+                        sl[VilkenSpelare].hand.Add(Sjön[kort]);
+                        Sjön.RemoveAt(kort);
+                    }
+                    if(KanDuKöra){
+                        Robot(VilkenSpelare);
+                        UpdateraMinnen(sl);
+                        if(sl[sl[VilkenSpelare].posiSpelare].contains(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort)){
+                            VilkaKort=VarÄrKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
+                            fas=Spelfas.taKortFrånSpelareAnimation;
+                        }else{
+                            if(Sjön.Count>0){
+                                VilketKortSjön=ran.Next(0,Sjön.Count);
+                                fas=Spelfas.taKortFrånSjönAnimation;
+                            }else{
+                                fas=Spelfas.DuVäljerKort;
+                            }
+                        }
+                    }
+                }
+                if(fas==Spelfas.taKortFrånSjönAnimation){
+                    if(AnimationTarFrånSjön(Sjön,sl[VilkenSpelare],VilketKortSjön)){
+                        sl[VilkenSpelare].hand.Add(Sjön[VilketKortSjön]);
+                        Sjön.RemoveAt(VilketKortSjön);
+                        if(VilkenSpelare==0){
+                            sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
+                            fas=Spelfas.Robot1;
+                        }else if(VilkenSpelare==1){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.Robot2;
+                        }else if(VilkenSpelare==2){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.Robot3;
+                        }else if(VilkenSpelare==3){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.DuVäljerKort;
+                        }
+                    }
+                }
+                if(fas==Spelfas.taKortFrånSpelareAnimation){
+                    if(AnimationTarFrånSpelare(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare],VilkaKort)){
+                        VilkaKort.Clear();
+                        RemoveKort(sl[VilkenSpelare],sl[sl[VilkenSpelare].posiSpelare]);
+                        if(VilkenSpelare==0){
+                            sl[VilkenSpelare].hand=SåDetSerBraUt(sl,VilkenSpelare);
+                            fas=Spelfas.DuVäljerKort;
+                        }else if(VilkenSpelare==1){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.Robot1;
+                        }else if(VilkenSpelare==2){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.Robot2;
+                        }else if(VilkenSpelare==3){
+                            BotarKort(sl[VilkenSpelare]);
+                            fas=Spelfas.Robot3;
+                        }
+                    }
+                }
+            }else{
+                fas=Spelfas.Slut;
             }
-        }else{
-            fas=Spelfas.Slut;
+            foreach(List<string> ls in sl[0].vadhardeandraspelat){
+                for(int i=1;i<4;i++){
+                    List<string> kortattta = new List<string>();
+                    foreach(string s in sl[0].vadhardeandraspelat[i]){
+                        if(!sl[i].contains(s)){
+                            kortattta.Add(s);
+                        }
+                    }
+                    foreach(string s in kortattta){
+                        sl[0].vadhardeandraspelat[i].Remove(s);
+                    }
+
+                }
+            }
         }
         if(kstate.IsKeyUp(Keys.Left)&&kstate.IsKeyUp(Keys.Right)&&kstate.IsKeyUp(Keys.Space)){
             Space=true;
@@ -281,55 +335,81 @@ public class Game1 : Game
         GraphicsDevice.Clear(Color.SeaGreen);
         _spriteBatch.Begin();
 
-            foreach(Kortvisuel k in Sjön){ // Ritar sjön.
-                _spriteBatch.Draw(texture,k.rödrektangle,Color.Black);
-                _spriteBatch.Draw(texture,k.vitrektangle,Color.Red);
-            }
-            if(fas==Spelfas.taKortFrånSpelareAnimation){
-                foreach(int i in VilkaKort){
-                    if(sl[VilkenSpelare].posiSpelare!=0){
-                        _spriteBatch.Draw(texture,sl[sl[VilkenSpelare].posiSpelare].hand[i].rödrektangle,Color.Black);
-                        _spriteBatch.Draw(texture,sl[sl[VilkenSpelare].posiSpelare].hand[i].vitrektangle,Color.Red);
+
+
+            if(fas!=Spelfas.Meny){
+                foreach(Kortvisuel k in Sjön){ // Ritar sjön.
+                    _spriteBatch.Draw(texture,k.rödrektangle,Color.Black);
+                    _spriteBatch.Draw(texture,k.vitrektangle,Color.Red);
+                }
+                if(fas==Spelfas.taKortFrånSpelareAnimation){
+                    foreach(int i in VilkaKort){
+                        if(sl[VilkenSpelare].posiSpelare!=0){
+                            _spriteBatch.Draw(texture,sl[sl[VilkenSpelare].posiSpelare].hand[i].rödrektangle,Color.Black);
+                            _spriteBatch.Draw(texture,sl[sl[VilkenSpelare].posiSpelare].hand[i].vitrektangle,Color.Red);
+                        }
                     }
                 }
-            }
-            if(fas==Spelfas.DuVäljerSpelare){
-                _spriteBatch.Draw(texture,new Rectangle(sl[sl[0].posiSpelare].Kordinatx-5,sl[sl[0].posiSpelare].Kordinaty-5,160,100),Color.Red);
-            }
-            if(fas==Spelfas.StartAnimation){
-                foreach(Spelare s in sl){
-                    foreach(Kortvisuel k in s.hand){
-                        _spriteBatch.Draw(texture,k.rödrektangle,Color.Black);
-                        _spriteBatch.Draw(texture,k.vitrektangle,Color.Red);
+                if(fas==Spelfas.DuVäljerSpelare){
+                    _spriteBatch.Draw(texture,new Rectangle(sl[sl[0].posiSpelare].Kordinatx-5,sl[sl[0].posiSpelare].Kordinaty-5,160,100),Color.Red);
+                }
+                if(fas==Spelfas.StartAnimation){
+                    foreach(Spelare s in sl){
+                        foreach(Kortvisuel k in s.hand){
+                            _spriteBatch.Draw(texture,k.rödrektangle,Color.Black);
+                            _spriteBatch.Draw(texture,k.vitrektangle,Color.Red);
+                        }
+                    }
+                }else{
+                    foreach(Kortvisuel Kort in sl[0].hand){ // ritar din hand.
+                        _spriteBatch.Draw(texture,Kort.rödrektangle,Color.Red);
+                        _spriteBatch.Draw(texture,Kort.vitrektangle,Color.White);
+                        _spriteBatch.DrawString(font1,Kort.Kort,new Vector2(Kort.vitrektangle.X+10,Kort.vitrektangle.Y+10),Color.Black);
                     }
                 }
-            }else{
-                foreach(Kortvisuel Kort in sl[0].hand){ // ritar din hand.
-                    _spriteBatch.Draw(texture,Kort.rödrektangle,Color.Red);
-                    _spriteBatch.Draw(texture,Kort.vitrektangle,Color.White);
-                    _spriteBatch.DrawString(font1,Kort.Kort,new Vector2(Kort.vitrektangle.X+10,Kort.vitrektangle.Y+10),Color.Black);
+                if(fas!=Spelfas.Slut){
+                    for(int i=1;i<4;i++){
+                        _spriteBatch.DrawString(font1,sl[i].namn,new Vector2(sl[i].Kordinatx,sl[i].Kordinaty),Color.Black);
+                        _spriteBatch.DrawString(font1,sl[i].hand.Count+"",new Vector2(sl[i].Kordinatx+50,sl[i].Kordinaty+35),Color.Black);
+                    }
                 }
-            }
-            if(fas!=Spelfas.Slut){
                 for(int i=1;i<4;i++){
-                    _spriteBatch.DrawString(font1,sl[i].namn,new Vector2(sl[i].Kordinatx,sl[i].Kordinaty),Color.Black);
-                    _spriteBatch.DrawString(font1,sl[i].hand.Count+"",new Vector2(sl[i].Kordinatx+50,sl[i].Kordinaty+35),Color.Black);
+                    _spriteBatch.Draw(texture,new Rectangle(sl[i].Kordinatx,sl[i].Kordinaty+70,100,30*sl[0].vadhardeandraspelat[i].Count),Color.DarkGreen);
+                    for(int a=0;a<sl[0].vadhardeandraspelat[i].Count;a++){
+                        _spriteBatch.DrawString(font1,sl[0].vadhardeandraspelat[i][a],new Vector2(sl[i].Kordinatx+2,69+sl[i].Kordinaty+(30*a)),Color.Black);
+                    }
                 }
-            }
-            for(int i=1;i<4;i++){
-                _spriteBatch.Draw(texture,new Rectangle(sl[i].Kordinatx,sl[i].Kordinaty+70,100,30*sl[0].vadhardeandraspelat[i].Count),Color.DarkGreen);
-                for(int a=0;a<sl[0].vadhardeandraspelat[i].Count;a++){
-                    _spriteBatch.DrawString(font1,sl[0].vadhardeandraspelat[i][a],new Vector2(sl[i].Kordinatx+2,69+sl[i].Kordinaty+(30*a)),Color.Black);
-                }
-            }
-            if(fas==Spelfas.Slut){
+                if(fas==Spelfas.Slut){
                 for(int i=0;i<4;i++){
                     _spriteBatch.DrawString(font1,sl[i].namn,new Vector2(350+(300*i),400),Color.Black);
                     _spriteBatch.DrawString(font1,"Poäng "+sl[i].poäng,new Vector2(350+(300*i),450),Color.Black);
                 }
             }
-            
-
+            }
+            else{
+                _spriteBatch.DrawString(font2,"Finns i sjön",new Vector2(725,200),Color.Black);
+                _spriteBatch.Draw(texture,StartKnapp,Color.Gray);
+                _spriteBatch.DrawString(font2,"Start",new Vector2(830,810),Color.Black);
+                foreach(Rectangle r in Svårihetsgrad){
+                    _spriteBatch.Draw(texture,r,Color.Gray);
+                }
+                _spriteBatch.DrawString(font2,"Lätt",new Vector2(510,610),Color.Green);
+                _spriteBatch.DrawString(font2,"Medel",new Vector2(810,610),Color.Orange);
+                _spriteBatch.DrawString(font2,"Svårt",new Vector2(1110,610),Color.Red);
+                string[] instruktion = {"Välj en svårighetsgrad.","Du väljer kort och vem","du vill fråga genom","att använda pilarna","och space knappen"};
+                string[] instruktion2 = {"De numerna som du kommer", "se under de andra spelarna","är de kort som de har frågat efter"};
+                int k=0;
+                foreach(string s in instruktion){
+                    k++;
+                    _spriteBatch.DrawString(font1,s,new Vector2(530,300+(31*k)),Color.Black);
+                }
+                k=0;
+                foreach(string s in instruktion2){
+                    k++;
+                    _spriteBatch.DrawString(font1,s,new Vector2(930,300+(31*k)),Color.Black);
+                }
+                
+            }
         _spriteBatch.End();
         
 
@@ -362,46 +442,45 @@ public class Game1 : Game
                     sl[i].vadhardeandraspelat[VilkenSpelare].Add(sl[VilkenSpelare].hand[sl[VilkenSpelare].PosiAvDittKort].Kort);
                 }
             }
-        }
-    }
-    static bool HarNågonLikaKortSomDu(Spelare ss){
-        Random ran = new Random();
-        List<int> spelare = new List<int>();
-        List<int> sp = new List<int>{0,1,2,3};
-        int valet;
-        for(int i=0;i<4;i++){
-            valet = ran.Next(0,sp.Count);
-            spelare.Add(sp[valet]);
-            sp.RemoveAt(valet);
-        }
-        spelare.Remove(ss.vemärdu);
-        
-        
-        foreach(int i in spelare){
-            for(int a=0;a<ss.hand.Count;a++){
-                if(ss.vadhardeandraspelat[i].Contains(ss.hand[a].Kort)){
-                    ss.posiSpelare=i;
-                    ss.PosiAvDittKort=a;
-                    ss.vadhardeandraspelat[i].Remove(ss.hand[a].Kort);
-                    return false;
+            if(Svårihet==1){
+                if(i!=0){
+                    if(sl[i].vadhardeandraspelat[VilkenSpelare].Count>3){
+                        for(int a=sl[i].vadhardeandraspelat[VilkenSpelare].Count-1;a<2;a--){
+                            sl[i].vadhardeandraspelat[VilkenSpelare].RemoveAt(a);
+                        }
+                    }
                 }
             }
         }
-        /*
-            med en lista i spelare kan vi göra så den gemför mellan listorna i sig för att kolla om de innehåler något av det.
-            4 listor en som minst en som är tom för det är dens egen.
-
-            gör så den kollar slump mässigt en av listorna o sen om den inte inehåller det så kollar 
-            den nästa till alla är kollade och om ingen hade det den själv hade i handen så väljer den bara slump mässigt ett av sina
-            kort.
-
-            den ska även byta vilken spelare den väljer om den hittar ett lika kort i listorna.
-        */
-
+    }
+    static bool HarNågonLikaKortSomDu(Spelare ss,int Svårihet){
+        if(Svårihet==1||Svårihet==2){
+            Random ran = new Random();
+            List<int> spelare = new List<int>();
+            List<int> sp = new List<int>{0,1,2,3};
+            int valet;
+            for(int i=0;i<4;i++){
+                valet = ran.Next(0,sp.Count);
+                spelare.Add(sp[valet]);
+                sp.RemoveAt(valet);
+            }
+            spelare.Remove(ss.vemärdu);
+            
+            foreach(int i in spelare){
+                for(int a=0;a<ss.hand.Count;a++){
+                    if(ss.vadhardeandraspelat[i].Contains(ss.hand[a].Kort)){
+                        ss.posiSpelare=i;
+                        ss.PosiAvDittKort=a;
+                        ss.vadhardeandraspelat[i].Remove(ss.hand[a].Kort);
+                        return false;
+                    }
+                }
+            }
+        }
         return true;
     }
     void Robot(int v){
-        if(HarNågonLikaKortSomDu(sl[v])){
+        if(HarNågonLikaKortSomDu(sl[v],Svårihet)){
             int kanskedem;
             do{
                 kanskedem = ran.Next(0,4);
@@ -661,7 +740,12 @@ public class Game1 : Game
         }
         return AnimationB(sl,v);
     }
-
+    static void BotarKort(Spelare ss){
+        foreach(Kortvisuel k in ss.hand){
+            k.ÄndraLängd=180;
+            k.ÄndraTjock=100;
+        }
+    }
     void test(Spelare ss){
         foreach(List<string> li in ss.vadhardeandraspelat){
             foreach(string s in li){
